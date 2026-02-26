@@ -26,6 +26,10 @@ export type GuildMember = {
   character: GuildCharacter;
 };
 
+export type EnrichedGuildMember = GuildMember & {
+  mythicPlusScore: number; // 0 if not a runner or data unavailable
+};
+
 // ==================== Raid Progression ====================
 
 export type RaidBossProgression = {

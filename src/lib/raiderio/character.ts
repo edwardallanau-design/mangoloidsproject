@@ -25,7 +25,7 @@ export async function fetchCharacterDetail(
       region: GUILD_REGION,
       realm,
       name,
-      fields: 'mythic_plus_scores_by_season:current,gear',
+      fields: 'mythic_plus_scores_by_season,gear',
     },
     CHARACTER_REVALIDATE_SECONDS,
   );
