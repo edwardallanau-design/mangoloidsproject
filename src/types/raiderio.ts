@@ -28,6 +28,7 @@ export type GuildMember = {
 
 export type EnrichedGuildMember = GuildMember & {
   mythicPlusScore: number; // 0 if not a runner or data unavailable
+  gearItemLevel?: number; // Equipped item level from character detail
 };
 
 // ==================== Raid Progression ====================

@@ -34,6 +34,9 @@ export function MemberCard({ member }: { member: EnrichedGuildMember }) {
               </>
             )}
           </p>
+          <p className="text-xs text-foreground/60">
+            {character.race}
+          </p>
         </div>
         <div className="flex flex-col items-end gap-2">
           <div className="text-2xl">{roleIcon}</div>
@@ -44,22 +47,11 @@ export function MemberCard({ member }: { member: EnrichedGuildMember }) {
           }`}>
             M+ {member.mythicPlusScore > 0 ? member.mythicPlusScore.toFixed(0) : 'None'}
           </div>
-        </div>
-      </div>
-
-      {/* Meta: Race, Rank, Achievement Points */}
-      <div className="mt-4 space-y-2 text-xs text-foreground/60">
-        <div>
-          <span className="font-medium">Race:</span> {character.race}
-        </div>
-        <div>
-          <span className="font-medium">Rank:</span> {member.rank}
-        </div>
-        <div>
-          <span className="font-medium">Achievements:</span> {character.achievement_points.toLocaleString()}
-        </div>
-        <div className="pt-2 text-xs text-foreground/50">
-          Updated: {new Date(character.last_crawled_at).toLocaleDateString()}
+          {member.gearItemLevel && (
+            <div className="rounded-full bg-accent/20 px-2 py-1 text-xs font-semibold text-accent">
+              ilvl {member.gearItemLevel}
+            </div>
+          )}
         </div>
       </div>
     </a>

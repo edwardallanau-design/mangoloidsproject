@@ -58,10 +58,11 @@ export async function fetchEnrichedGuildMembers(): Promise<EnrichedGuildMember[]
     members.map(m => fetchCharacterDetail(m.character.name)),
   );
 
-  // Enrich members with M+ scores and sort by score descending
+  // Enrich members with M+ scores and gear iLevel, then sort by score descending
   const enriched: EnrichedGuildMember[] = members.map((member, index) => {
     const result = characterDetails[index];
     let mythicPlusScore = 0;
+    let gearItemLevel: number | undefined;
 
     if (result.status === 'fulfilled') {
       const detail = result.value as CharacterDetail;
@@ -75,6 +76,11 @@ export async function fetchEnrichedGuildMembers(): Promise<EnrichedGuildMember[]
           mythicPlusScore = season.scores.all;
         }
       }
+
+      // Get equipped gear iLevel
+      if (detail.gear?.item_level_equipped) {
+        gearItemLevel = detail.gear.item_level_equipped;
+      }
     } else if (result.status === 'rejected') {
       // Log failed character fetches for debugging
       console.error(`[M+ Fetch] Failed to fetch M+ for ${member.character.name}:`, result.reason);
@@ -83,6 +89,7 @@ export async function fetchEnrichedGuildMembers(): Promise<EnrichedGuildMember[]
     return {
       ...member,
       mythicPlusScore,
+      gearItemLevel,
     };
   });
 
