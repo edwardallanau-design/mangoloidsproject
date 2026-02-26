@@ -1,22 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { ThemeContext } from '@/hooks/useTheme';
+import { THEME_STORAGE_KEY, THEMES } from '@/constants/theme';
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [isDark, setIsDark] = useState(false);
   const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    // Check if user has a saved preference
-    const savedTheme = localStorage.getItem('guild-theme');
-    const prefersDark =
-      savedTheme === 'dark' ||
-      (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches);
-
-    setIsDark(prefersDark);
-    updateTheme(prefersDark);
-  }, []);
 
   const updateTheme = (dark: boolean) => {
     const html = document.documentElement;
@@ -25,8 +15,24 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     } else {
       html.classList.remove('dark');
     }
-    localStorage.setItem('guild-theme', dark ? 'dark' : 'light');
+    localStorage.setItem(THEME_STORAGE_KEY, dark ? THEMES.DARK : THEMES.LIGHT);
   };
+
+  useEffect(() => {
+    const handleMount = () => {
+      // Check if user has a saved preference
+      const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+      const prefersDark =
+        savedTheme === THEMES.DARK ||
+        (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+      setIsDark(prefersDark);
+      updateTheme(prefersDark);
+      setMounted(true);
+    };
+
+    handleMount();
+  }, []);
 
   const toggleTheme = () => {
     const newTheme = !isDark;
@@ -46,19 +52,5 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-import { createContext, useContext } from 'react';
-
-interface ThemeContextType {
-  isDark: boolean;
-  toggleTheme: () => void;
-}
-
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
-
-export function useTheme() {
-  const context = useContext(ThemeContext);
-  if (!context) {
-    throw new Error('useTheme must be used within ThemeProvider');
-  }
-  return context;
-}
+// Re-export useTheme hook for convenience (also available from @/hooks/useTheme)
+export { useTheme } from '@/hooks/useTheme';
