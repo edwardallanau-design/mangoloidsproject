@@ -1,6 +1,6 @@
 'use client';
 
-import { useTheme } from '@/app/providers';
+import { useTheme } from '@/hooks/useTheme';
 
 export function ThemeToggle() {
   const { isDark, toggleTheme } = useTheme();
