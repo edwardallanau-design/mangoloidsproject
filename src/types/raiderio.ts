@@ -11,14 +11,15 @@ export type GuildCharacter = {
   class: string;
   active_spec_name: string | null;
   active_spec_role: 'DPS' | 'TANK' | 'HEALING' | null;
-  gender: string;
-  faction: string;
-  achievement_points: number;
   region: string;
   realm: string;
-  last_crawled_at: string;
   profile_url: string;
-  profile_banner: string;
+  // Optional: only populated when sourced from Raider.io guild endpoint
+  gender?: string;
+  faction?: string;
+  achievement_points?: number;
+  last_crawled_at?: string;
+  profile_banner?: string;
 };
 
 export type GuildMember = {

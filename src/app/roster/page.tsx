@@ -1,25 +1,63 @@
-import { fetchEnrichedGuildMembers } from '@/lib/raiderio/guild';
-import type { EnrichedGuildMember } from '@/types/raiderio';
-import { RosterClient } from '@/components/roster/RosterClient';
+import { fetchEnrichedGuildMembers, fetchGuildProgression } from '@/lib/raiderio/guild';
+import type { EnrichedGuildMember, RaidProgression } from '@/types/raiderio';
+import type { RaidTeam } from '@/types/raid';
+import { RAID_TEAMS } from '@/config/raidTeams';
+import { RosterTabs } from '@/components/roster/RosterTabs';
 
 /**
- * Guild Roster Page
- * Async Server Component that fetches live member data from Raider.io
- * Enriches members with Mythic+ scores (fetched in parallel)
- * Data is cached for 15 minutes via ISR (Incremental Static Regeneration)
+ * Guild Roster Page (Dual Tab)
+ * Async Server Component that fetches:
+ * 1. Live member data from Raider.io (enriched with M+ scores and gear)
+ * 2. Raid progression data from Raider.io
+ * 3. Resolves configurable raid teams against live member data
  *
- * Renders RosterClient (Client Component) for interactive filtering
+ * Data is cached via ISR (6 hours for M+/gear, 24 hours for guild roster)
+ * Renders RosterTabs (Client) for tab switching and interactive filtering
  */
 
 export default async function RosterPage() {
   let members: EnrichedGuildMember[] = [];
+  let progression: RaidProgression = {};
+  let teams: RaidTeam[] = [];
   let error: string | null = null;
 
   try {
-    members = await fetchEnrichedGuildMembers();
+    // Fetch both data sources in parallel
+    const [fetchedMembers, progressionProfile] = await Promise.all([
+      fetchEnrichedGuildMembers(),
+      fetchGuildProgression(),
+    ]);
+
+    members = fetchedMembers;
+    progression = progressionProfile.raid_progression ?? {};
+
+    // Resolve raid teams from config by cross-referencing with live member data
+    teams = RAID_TEAMS.map(config => {
+      const resolved = config.members.map(name => {
+        const found = members.find(
+          m => m.character.name.toLowerCase() === name.toLowerCase()
+        );
+        return found
+          ? {
+              name: found.character.name,
+              class: found.character.class,
+              role: found.character.active_spec_role,
+              profileUrl: found.character.profile_url,
+              gearItemLevel: found.gearItemLevel,
+            }
+          : { name, class: 'Unknown', role: null, profileUrl: '#' };
+      });
+
+      return {
+        name: config.name,
+        description: config.description,
+        mainRoster: resolved.slice(0, 20),
+        bench: resolved.slice(20),
+      };
+    });
   } catch (err) {
     error = err instanceof Error ? err.message : 'Failed to fetch roster';
-    console.error('[Roster] Error fetching members:', error);
+    console.error('[Roster] Error fetching data:', error);
   }
 
   // Derive unique classes from the members data
@@ -42,7 +80,7 @@ export default async function RosterPage() {
             <span className="font-semibold">Error loading roster:</span> {error}
           </p>
           <p className="mt-2 text-sm text-accent/80">
-            The guild data will refresh automatically in 1 hour.
+            The guild data will refresh automatically in 6 hours.
           </p>
         </div>
       ) : members.length === 0 ? (
@@ -50,9 +88,11 @@ export default async function RosterPage() {
           <p className="text-foreground/70">No members found. Please try again later.</p>
         </div>
       ) : (
-        <RosterClient
+        <RosterTabs
           members={members}
           availableClasses={availableClasses}
+          teams={teams}
+          progression={progression}
         />
       )}
 
