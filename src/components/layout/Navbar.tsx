@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { NAV_LINKS } from '@/constants/navigation';
@@ -18,10 +19,15 @@ export function Navbar() {
       <div className="mx-auto max-w-6xl px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-              <span className="text-xl font-bold text-primary">⚔️</span>
-            </div>
+          <Link href="/" className="flex items-center gap-3">
+            <Image
+              src="/mangoloids-logo.png"
+              alt="Mangoloids Guild Logo"
+              width={40}
+              height={40}
+              priority
+              className="h-10 w-10 object-contain"
+            />
             <span className="hidden text-xl font-bold text-foreground sm:inline">
               Mangoloids
             </span>

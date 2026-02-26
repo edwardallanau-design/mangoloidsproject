@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { NAV_LINKS } from '@/constants/navigation';
 
 export function Footer() {
@@ -27,10 +28,14 @@ export function Footer() {
         <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
           {/* Brand */}
           <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                <span className="text-xl font-bold text-primary">⚔️</span>
-              </div>
+            <div className="flex items-center gap-3">
+              <Image
+                src="/mangoloids-logo.png"
+                alt="Mangoloids Guild Logo"
+                width={40}
+                height={40}
+                className="h-10 w-10 object-contain"
+              />
               <span className="text-lg font-bold text-foreground">Mangoloids</span>
             </div>
             <p className="text-sm text-foreground/60">

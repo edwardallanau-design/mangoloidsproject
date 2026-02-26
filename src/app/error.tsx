@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function Error({
   error,
@@ -14,8 +15,14 @@ export default function Error({
       <div className="max-w-md space-y-8 text-center">
         {/* Error Icon */}
         <div className="flex justify-center">
-          <div className="rounded-lg bg-accent/10 p-6">
-            <div className="text-6xl">⚠️</div>
+          <div className="rounded-lg bg-accent/10 p-6 opacity-50">
+            <Image
+              src="/mangoloids-logo.png"
+              alt="Error"
+              width={80}
+              height={80}
+              className="object-contain"
+            />
           </div>
         </div>
 

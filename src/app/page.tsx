@@ -1,11 +1,20 @@
+import Image from 'next/image';
+
 export default function Home() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6 py-16 text-foreground">
       <div className="w-full max-w-2xl space-y-8 text-center">
         {/* Logo/Icon */}
         <div className="flex justify-center">
-          <div className="rounded-lg bg-primary/10 p-6">
-            <div className="text-6xl">⚔️</div>
+          <div className="rounded-lg bg-primary/10 p-0">
+            <Image
+              src="/mangoloids-logo.png"
+              alt="Mangoloids Guild Logo"
+              width={250}
+              height={250}
+              priority
+              className="object-contain"
+            />
           </div>
         </div>
 

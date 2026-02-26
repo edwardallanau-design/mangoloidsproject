@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function NotFound() {
   return (
@@ -7,7 +8,13 @@ export default function NotFound() {
         {/* 404 Icon */}
         <div className="flex justify-center">
           <div className="rounded-lg bg-primary/10 p-6">
-            <div className="text-6xl">🗺️</div>
+            <Image
+              src="/mangoloids-logo.png"
+              alt="Not Found"
+              width={80}
+              height={80}
+              className="object-contain"
+            />
           </div>
         </div>
 
