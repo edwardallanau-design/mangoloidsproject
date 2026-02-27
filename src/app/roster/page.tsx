@@ -1,4 +1,4 @@
-import { getSupabase } from '@/lib/db/supabase';
+import { fetchEnrichedGuildMembers, fetchGuildProgression } from '@/lib/raiderio/guild';
 import type { EnrichedGuildMember, RaidProgression } from '@/types/raiderio';
 import type { RaidTeam } from '@/types/raid';
 import { RAID_TEAMS } from '@/config/raidTeams';
@@ -6,8 +6,13 @@ import { RosterTabs } from '@/components/roster/RosterTabs';
 
 /**
  * Guild Roster Page (Dual Tab)
- * Reads pre-synced data from Supabase — no live API calls on page load.
- * Data is refreshed every 6 hours by the /api/sync Vercel Cron job.
+ * Async Server Component that fetches:
+ * 1. Live member data from Raider.io (enriched with M+ scores and gear)
+ * 2. Raid progression data from Raider.io
+ * 3. Resolves configurable raid teams against live member data
+ *
+ * Data is cached via ISR (6 hours for M+/gear, 24 hours for guild roster)
+ * Renders RosterTabs (Client) for tab switching and interactive filtering
  */
 
 // Revalidate every 24 hours to match the sync schedule
@@ -21,54 +26,16 @@ export default async function RosterPage() {
   let lastSynced: string | null = null;
 
   try {
-    const supabase = getSupabase();
-
-    // Read from Supabase in parallel
-    const [membersResult, progressionResult] = await Promise.all([
-      supabase
-        .from('guild_members')
-        .select('*')
-        .order('mythic_plus_score', { ascending: false }),
-      supabase
-        .from('raid_progression')
-        .select('*'),
+    // Fetch both data sources in parallel
+    const [fetchedMembers, progressionProfile] = await Promise.all([
+      fetchEnrichedGuildMembers(),
+      fetchGuildProgression(),
     ]);
 
-    if (membersResult.error) throw new Error(membersResult.error.message);
-    if (progressionResult.error) throw new Error(progressionResult.error.message);
+    members = fetchedMembers;
+    progression = progressionProfile.raid_progression ?? {};
 
-    // Map DB rows → EnrichedGuildMember[]
-    members = (membersResult.data ?? []).map(row => ({
-      rank: row.rank,
-      character: {
-        name: row.name,
-        class: row.class,
-        race: row.race,
-        region: row.region,
-        realm: row.realm,
-        active_spec_name: row.active_spec_name,
-        active_spec_role: row.active_spec_role as EnrichedGuildMember['character']['active_spec_role'],
-        profile_url: row.profile_url,
-      },
-      mythicPlusScore: row.mythic_plus_score,
-      gearItemLevel: row.gear_item_level ?? undefined,
-    }));
-
-    // Map DB rows → RaidProgression record
-    progression = Object.fromEntries(
-      (progressionResult.data ?? []).map(row => [
-        row.raid_slug,
-        {
-          summary: row.summary,
-          total_bosses: row.total_bosses,
-          normal_bosses_killed: row.normal_bosses_killed,
-          heroic_bosses_killed: row.heroic_bosses_killed,
-          mythic_bosses_killed: row.mythic_bosses_killed,
-        },
-      ])
-    );
-
-    // Resolve raid teams from config against live member data
+    // Resolve raid teams from config by cross-referencing with live member data
     teams = RAID_TEAMS.map(config => {
       const resolved = config.members.map(name => {
         const found = members.find(
@@ -92,14 +59,9 @@ export default async function RosterPage() {
         bench: resolved.slice(20),
       };
     });
-
-    // Track when data was last synced
-    if (membersResult.data && membersResult.data.length > 0) {
-      lastSynced = membersResult.data[0].synced_at;
-    }
   } catch (err) {
-    error = err instanceof Error ? err.message : 'Failed to load roster';
-    console.error('[Roster] Error loading from DB:', error);
+    error = err instanceof Error ? err.message : 'Failed to fetch roster';
+    console.error('[Roster] Error fetching data:', error);
   }
 
   const availableClasses = Array.from(
@@ -119,6 +81,9 @@ export default async function RosterPage() {
         <div className="rounded-lg border border-accent/30 bg-accent/10 p-6">
           <p className="text-accent">
             <span className="font-semibold">Error loading roster:</span> {error}
+          </p>
+          <p className="mt-2 text-sm text-accent/80">
+            The guild data will refresh automatically in 6 hours.
           </p>
         </div>
       ) : members.length === 0 ? (
