@@ -11,8 +11,6 @@ import {
 } from '@/constants/raiderio';
 import type { GuildProfile, EnrichedGuildMember, CharacterDetail, GuildCharacter } from '@/types/raiderio';
 import { fetchCharacterDetail } from './character';
-import { fetchBlizzardGuildRoster } from '@/lib/blizzard/guild';
-import type { BlizzardGuildMember } from '@/types/blizzard';
 
 /**
  * Fetch full guild profile with specified fields
@@ -43,35 +41,36 @@ export async function fetchGuildProgression() {
 
 /**
  * Fetch guild members enriched with Mythic+ scores
- * Uses Blizzard API for authoritative member list (name, class, race, rank)
+ * Uses Raider.io guild members endpoint for the member list (name, class, race, rank)
  * Fetches member M+ data from Raider.io in parallel with exponential backoff retry for rate limiting
  */
 export async function fetchEnrichedGuildMembers(): Promise<EnrichedGuildMember[]> {
-  // Use Blizzard API for authoritative guild roster
-  const blizzardMembers = await fetchBlizzardGuildRoster();
+  // Use Raider.io for guild roster
+  const guildProfile = await fetchGuildProfile('members');
+  const rioMembers = (guildProfile.members ?? []).filter(
+    m => m.character.class && m.character.race
+  );
 
   // Fetch M+ scores + gear + spec from Raider.io per character
   const characterDetails = await Promise.allSettled(
-    blizzardMembers.map(m => fetchCharacterDetail(m.character.name)),
+    rioMembers.map(m => fetchCharacterDetail(m.character.name, m.character.realm)),
   );
 
   // Enrich members with M+ scores and gear iLevel, then sort by score descending
-  const enriched: EnrichedGuildMember[] = blizzardMembers.map((blizzMember, index) => {
+  const enriched: EnrichedGuildMember[] = rioMembers.map((member, index) => {
     const result = characterDetails[index];
     let mythicPlusScore = 0;
     let gearItemLevel: number | undefined;
 
-    // Build character from Blizzard data
     const character: GuildCharacter = {
-      name: blizzMember.character.name,
-      class: blizzMember.character.playable_class.name,
-      race: blizzMember.character.playable_race.name,
+      name: member.character.name,
+      class: member.character.class,
+      race: member.character.race,
       region: GUILD_REGION,
-      realm: blizzMember.character.realm.slug,
-      active_spec_name: null,
-      active_spec_role: null,
-      // Construct Raider.io profile URL for card links
-      profile_url: `https://raider.io/characters/${GUILD_REGION}/${blizzMember.character.realm.slug}/${blizzMember.character.name}`,
+      realm: member.character.realm,
+      active_spec_name: member.character.active_spec_name ?? null,
+      active_spec_role: member.character.active_spec_role ?? null,
+      profile_url: member.character.profile_url,
     };
 
     if (result.status === 'fulfilled') {
@@ -85,7 +84,6 @@ export async function fetchEnrichedGuildMembers(): Promise<EnrichedGuildMember[]
       const scores = detail.mythic_plus_scores_by_season;
 
       if (Array.isArray(scores) && scores.length > 0) {
-        // Find current season by excluding preseason and postseason
         const currentSeason = scores.find(
           s => !s.season.toLowerCase().includes('preseason') &&
                !s.season.toLowerCase().includes('postseason')
@@ -101,12 +99,11 @@ export async function fetchEnrichedGuildMembers(): Promise<EnrichedGuildMember[]
         gearItemLevel = detail.gear.item_level_equipped;
       }
     } else if (result.status === 'rejected') {
-      // Log failed character fetches for debugging
-      console.error(`[M+ Fetch] Failed to fetch M+ for ${blizzMember.character.name}:`, result.reason);
+      console.error(`[M+ Fetch] Failed to fetch M+ for ${member.character.name}:`, result.reason);
     }
 
     return {
-      rank: blizzMember.rank,
+      rank: member.rank,
       character,
       mythicPlusScore,
       gearItemLevel,
