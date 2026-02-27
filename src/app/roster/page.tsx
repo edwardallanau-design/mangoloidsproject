@@ -15,11 +15,15 @@ import { RosterTabs } from '@/components/roster/RosterTabs';
  * Renders RosterTabs (Client) for tab switching and interactive filtering
  */
 
+// Revalidate every 24 hours to match the sync schedule
+export const revalidate = 86400;
+
 export default async function RosterPage() {
   let members: EnrichedGuildMember[] = [];
   let progression: RaidProgression = {};
   let teams: RaidTeam[] = [];
   let error: string | null = null;
+  let lastSynced: string | null = null;
 
   try {
     // Fetch both data sources in parallel
@@ -60,7 +64,6 @@ export default async function RosterPage() {
     console.error('[Roster] Error fetching data:', error);
   }
 
-  // Derive unique classes from the members data
   const availableClasses = Array.from(
     new Set(members.map(m => m.character.class))
   ).sort();
@@ -84,8 +87,12 @@ export default async function RosterPage() {
           </p>
         </div>
       ) : members.length === 0 ? (
-        <div className="rounded-lg border border-primary/20 bg-primary/5 p-6 text-center">
-          <p className="text-foreground/70">No members found. Please try again later.</p>
+        <div className="rounded-lg border border-primary/20 bg-primary/5 p-6 text-center space-y-2">
+          <p className="text-foreground/70 font-medium">No roster data yet.</p>
+          <p className="text-sm text-foreground/50">
+            Trigger a sync by calling <code className="text-primary">GET /api/sync</code> with your{' '}
+            <code className="text-primary">CRON_SECRET</code>.
+          </p>
         </div>
       ) : (
         <RosterTabs
@@ -96,19 +103,15 @@ export default async function RosterPage() {
         />
       )}
 
-      {/* Data Source Attribution */}
       <div className="mt-8 border-t border-primary/10 pt-6 text-center text-xs text-foreground/50">
         <p>
-          Guild data provided by{' '}
-          <a
-            href="https://raider.io"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-primary transition-colors"
-          >
+          Guild data from{' '}
+          <a href="https://raider.io" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">
             Raider.io
           </a>
-          • Last updated: {new Date().toLocaleString()}
+          {lastSynced && (
+            <> · Last synced: {new Date(lastSynced).toLocaleString()}</>
+          )}
         </p>
       </div>
     </div>
