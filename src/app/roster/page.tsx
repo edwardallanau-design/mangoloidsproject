@@ -10,8 +10,8 @@ import { RosterTabs } from '@/components/roster/RosterTabs';
  * Data is refreshed every 6 hours by the /api/sync Vercel Cron job.
  */
 
-// Revalidate every 6 hours to match the sync schedule
-export const revalidate = 21600;
+// Revalidate every 24 hours to match the sync schedule
+export const revalidate = 86400;
 
 export default async function RosterPage() {
   let members: EnrichedGuildMember[] = [];
